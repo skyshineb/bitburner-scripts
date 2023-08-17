@@ -1,0 +1,12 @@
+Netburners    - 0
+BitRunners    - 0
+The Black Hand - 0
+NiteSec       - 0
+Chongqing     - 0
+New Tokyo     - 0
+CyberSec      - 0
+MegaCorp      - 1 (legs pre-req)
+Ishima        - 4
+Tian Di Hui   - 3
+Sector 12     - 3
+Aevum         - 1
