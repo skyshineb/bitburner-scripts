@@ -10,7 +10,7 @@ export async function main(ns) {
     const one = ns.getPurchasedServerCost(ram);
     const fullCost = ns.formatNumber(limit * one);
     ns.print(
-      `Servers with [${Colors.test}${ram}${Colors.reset}] GB costs: \x1b[38;5;32m(25): ${fullCost}${
+      `Servers with [${Colors.violet}${ram}${Colors.reset}] GB costs: \x1b[38;5;32m(25): ${fullCost}${
         Colors.reset
       } \x1b[38;5;44m(1): ${ns.formatNumber(one)}`,
     );

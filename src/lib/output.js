@@ -1,4 +1,6 @@
-/** @param {NS} ns */
+/**
+ * https://talyian.github.io/ansicolors/
+ */
 export const Colors = {
   black: '\x1b[30m',
   red: '\x1b[31m',
@@ -10,5 +12,5 @@ export const Colors = {
   white: '\x1b[37m',
   reset: '\x1b[0m',
   grey: '\x1b[38;5;7m',
-  test: '\x1b[38;5;98m',
+  violet: '\x1b[38;5;98m',
 };
