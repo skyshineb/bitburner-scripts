@@ -19,19 +19,16 @@ export async function main(ns) {
       const BlkLen = vals[3];
       const RamCost = vals[4];
       const AvgIncome = vals[5];
-      const reportString = `[${Colors.green}+${ns.formatNumber(AvgIncome, 2)}/s${Colors.reset}]\t${targetName}[${
-        Colors.magneta
-      }${cycle}${Colors.reset}] [block ${Colors.yellow}${BlkLen} sec${Colors.reset} / ${Math.floor(
-        RamCost,
-      )} GB] [lastUPD = ${Colors.cyan}${updTime}${Colors.reset}]`;
-      reports.set(targetName, [AvgIncome, reportString]);
+      const report = new HackReport(ns, targetName, cycle, updTime, BlkLen, RamCost, AvgIncome);
+
+      reports.set(targetName, [AvgIncome, report]);
     }
 
     ns.clearLog();
     ns.print(`${Colors.white}\t\t Hacking...`);
 
     Array.of(...reports.values())
-      .sort((a, b) => a[0] - b[0])
+      .sort((a, b) => b[0] - a[0])
       .forEach((value) => {
         ns.print(`${value[1]}`);
       });
@@ -42,6 +39,7 @@ export async function main(ns) {
 
 class HackReport {
   /**
+   * @param {NS} ns
    * @param {string} targetName
    * @param {string} cycle
    * @param {string} updTime
@@ -49,7 +47,8 @@ class HackReport {
    * @param {string} ramCost
    * @param {string} avgIncome
    */
-  constructor(targetName, cycle, updTime, blockLength, ramCost, avgIncome) {
+  constructor(ns, targetName, cycle, updTime, blockLength, ramCost, avgIncome) {
+    this.ns = ns;
     this.targetName = targetName;
     this.cycle = cycle;
     this.updTime = updTime;
@@ -59,10 +58,20 @@ class HackReport {
   }
 
   toString() {
-    return `[${Colors.green}+${this.avgIncome}/s${Colors.reset}]\t${this.targetName}[${Colors.magneta}${this.cycle}${
-      Colors.reset
-    }] [block ${Colors.yellow}${this.blockLength} sec${Colors.reset} / ${Math.floor(this.ramCost)} GB] [lastUPD = ${
-      Colors.cyan
-    }${this.updTime}${Colors.reset}]`;
+    if (Date.now() - parseInt(this.updTime, 10) > 1000 * 60 * 1) {
+      return `${Colors.grey}[+${this.ns.formatNumber(this.avgIncome, 2)}/s]\t${this.targetName}[${this.cycle}] [block ${
+        this.blockLength
+      } sec / ${Math.floor(this.ramCost)} GB] [lastUPD = ${new Date(parseInt(this.updTime, 10)).toLocaleTimeString(
+        'it-IT',
+      )}]`;
+    } else {
+      return `[${Colors.green}+${this.ns.formatNumber(this.avgIncome, 2)}/s${Colors.reset}]\t${this.targetName}[${
+        Colors.magneta
+      }${this.cycle}${Colors.reset}] [block ${Colors.yellow}${this.blockLength} sec${Colors.reset} / ${Math.floor(
+        this.ramCost,
+      )} GB] [lastUPD = ${Colors.cyan}${new Date(parseInt(this.updTime, 10)).toLocaleTimeString('it-IT')}${
+        Colors.reset
+      }]`;
+    }
   }
 }

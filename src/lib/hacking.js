@@ -2,15 +2,19 @@
 export function deepHackNetwork(ns, target, maxDepth) {
   const visited = new Set();
   const rooted = new Set();
-  scanHackRec(ns, target, 0, maxDepth, visited, rooted);
+  scanRec(ns, target, 0, maxDepth, rooted, visited, getToolsAvailable(ns));
   return new Array(...rooted);
 }
 
 /** @param {NS} ns
- *  @param {Set} visited
+ * @param {string} server
+ * @param {number} depth
+ * @param {number} maxDepth
  * @param {Set} rooted
+ * @param {Set} visited
+ * @param {Array} tools
  */
-function scanHackRec(ns, server, depth, maxDepth, visited, rooted) {
+export function scanRec(ns, server, depth, maxDepth, rooted, visited, tools) {
   const neighbours = ns.scan(server).filter((s) => !visited.has(s));
   for (let i = 0; i < neighbours.length; i++) {
     const target = neighbours[i];
@@ -58,7 +62,7 @@ function scanHackRec(ns, server, depth, maxDepth, visited, rooted) {
     // add node to visited and go rec
     visited.add(target);
     if (depth < maxDepth) {
-      scanHackRec(ns, target, depth + 1, maxDepth, visited, rooted);
+      scanRec(ns, target, depth + 1, maxDepth, rooted, visited, tools);
     }
   }
 }
@@ -66,6 +70,6 @@ function scanHackRec(ns, server, depth, maxDepth, visited, rooted) {
 const toolList = ['BruteSSH.exe', 'FTPCrack.exe', 'relaySMTP.exe', 'SQLInject.exe', 'HTTPWorm.exe'];
 
 /** @param {NS} ns */
-function getToolsAvailable(ns) {
+export function getToolsAvailable(ns) {
   return toolList.filter((t) => ns.fileExists(t));
 }

@@ -145,9 +145,7 @@ export async function main(ns) {
         ns.formatNumber(inc, 2),
       );
       handle.write(
-        `${target} ${cycles} ${new Date().toLocaleTimeString('it-IT')} ${ns.formatNumber(maxTime / 1000, 0)} ${
-          costOfCycle - 100
-        } ${inc}`,
+        `${target} ${cycles} ${Date.now()} ${ns.formatNumber(maxTime / 1000, 0)} ${costOfCycle - 100} ${inc}`,
       );
       //ns.printf(`${Colors.green}starting cycle %d${Colors.reset} at %s, free mem: %s`, cycles, new Date().toLocaleTimeString('it-IT'), freeMem);
       if (cycles % 200 == 0 && cycles != 0) {
