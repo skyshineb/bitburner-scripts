@@ -1,3 +1,5 @@
+import { Ports } from './lib/constants.js';
+
 /** @param {NS} ns */
 export async function main(ns) {
   const target = ns.args[0];
@@ -8,25 +10,22 @@ export async function main(ns) {
     return;
   }
 
+  const handle = ns.getPortHandle(Ports.hack_seq);
   const percentToSteal = 0.6;
-
   const moneyToHack = ns.getServerMaxMoney(target) * percentToSteal;
 
-  const securityThresh = ns.getServerMinSecurityLevel(target) + 5;
-
-  if (ns.fileExists('BruteSSH.exe', 'home')) {
-    ns.brutessh(target);
-  }
-
-  // Get root access to target server
-  ns.nuke(target);
+  const securityThresh = ns.getServerMinSecurityLevel(target) + 4;
 
   while (true) {
+    const inc = ns.getScriptIncome('early_b.js', ns.getHostname(), ...ns.args);
     if (ns.getServerSecurityLevel(target) > securityThresh) {
+      handle.write(`${target} ${Date.now()} weaken ${ns.getHostname()} ${inc}`);
       await ns.weaken(target);
     } else if (ns.getServerMoneyAvailable(target) < moneyToHack) {
+      handle.write(`${target} ${Date.now()} grow ${ns.getHostname()} ${inc}`);
       await ns.grow(target);
     } else {
+      handle.write(`${target} ${Date.now()} hack ${ns.getHostname()} ${inc}`);
       await ns.hack(target);
     }
   }

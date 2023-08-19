@@ -1,4 +1,5 @@
 import { Colors } from './lib/output.js';
+import { Ports } from './lib/constants.js';
 import * as smartopt from './smart-optimize.js';
 
 /** @param {NS} ns */
@@ -14,8 +15,7 @@ export async function main(ns) {
   }
 
   ns.disableLog('ALL');
-  const hackPort = 1;
-  const handle = ns.getPortHandle(hackPort);
+  const handle = ns.getPortHandle(Ports.hack_hwgw);
   const securityThresh = ns.getServerMinSecurityLevel(target);
 
   const moneyPercentageToSteal = stealP == undefined ? 0.75 : stealP;

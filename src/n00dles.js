@@ -14,15 +14,16 @@ export async function main(ns) {
     ns.printf('%s :\t %s', res[i][0], res[i][1]);
   }
 
-  const servName = 'pserv-2';
-  //ns.print('Server upgrade cost: ' + ns.formatNumber(ns.getPurchasedServerUpgradeCost(servName, 1048576), 2));
-  ns.purchaseServer(servName, 1048576);
-  //ns.upgradePurchasedServer(servName, 1048576);
+  const servName = 'pserv-1';
+  ns.print('Server upgrade cost: ' + ns.formatNumber(ns.getPurchasedServerUpgradeCost(servName, 1024), 2));
+  //ns.purchaseServer(servName, 512);
+  ns.upgradePurchasedServer(servName, 1024);
   ns.scp(
     [
       'early.js',
       'smart-optimize.js',
       'lib/output.js',
+      'lib/constants.js',
       'async/ahack.js',
       'async/agrow.js',
       'async/aweaken.js',

@@ -4,6 +4,7 @@ import { deepHackNetwork } from './lib/hacking.js';
 /** @param {NS} ns */
 export async function main(ns) {
   ns.disableLog('ALL');
+  ns.clearLog();
   ns.tail();
   // all hacked servers
   const all_open = deepHackNetwork(ns, 'home', 20);
