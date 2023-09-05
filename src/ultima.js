@@ -96,5 +96,6 @@ export async function main(ns) {
   for (let i = 0; i < serversWithFiles.length; i++) {
     const target = serversWithFiles[i];
     ns.exec('contract-solver.js', 'home', 1, target);
+    await ns.sleep(100);
   }
 }

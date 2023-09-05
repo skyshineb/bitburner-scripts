@@ -3,6 +3,7 @@ import { Colors } from './lib/output.js';
 /** @param {NS} ns */
 export async function main(ns) {
   ns.tail();
+  ns.resizeTail(610, 570);
   const limit = ns.getPurchasedServerLimit();
   const maxRam = ns.getPurchasedServerMaxRam();
   for (let i = 0; i <= Math.log2(maxRam); i++) {

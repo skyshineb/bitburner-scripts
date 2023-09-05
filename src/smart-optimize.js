@@ -56,35 +56,64 @@ export async function smartOptimize(ns, args) {
 
   const gMem = ns.getScriptRam('/async/agrow.js') * growThreads;
   const wMem = ns.getScriptRam('/async/aweaken.js') * weakenThreads;
-  const costOfCycle = gMem + wMem * 2 + 10; // left 100 GB of free ram just in case
+  const costOfCycle = gMem + wMem * 2;
 
+  // decision table
   let executed = false;
-  while (!executed) {
-    if (ns.getServerMaxRam(base) - ns.getServerUsedRam(base) > costOfCycle) {
-      ns.print(`${Colors.cyan} optimizing in batch <o o>`);
-      ns.exec('/async/aweaken.js', base, weakenThreads, target, w1Sleep, 0);
-      ns.exec('/async/agrow.js', base, growThreads, target, gSleep, 0);
-      ns.exec('/async/aweaken.js', base, weakenThreads, target, w2Sleep, 0);
-      executed = true;
-    } else {
-      ns.print(`${Colors.cyan} optimizing gradually >-<`);
-      if (
-        ns.getServerSecurityLevel(target) > serv.minDifficulty &&
-        ns.getServerMaxRam(base) - ns.getServerUsedRam(base) > wMem
-      ) {
-        ns.print(`${Colors.cyan} weakening with ${weakenThreads} threads`);
-        ns.exec('/async/aweaken.js', base, weakenThreads, target, w1Sleep, 0);
-        await ns.sleep(tWithDelays[0]);
-      } else if (
-        ns.getServerMoneyAvailable(target) < ns.getServerMaxMoney(target) &&
-        ns.getServerMaxRam(base) - ns.getServerUsedRam(base) > gMem
-      ) {
-        ns.print(`${Colors.cyan} growing with ${growThreads} threads`);
-        ns.exec('/async/agrow.js', base, growThreads, target, gSleep, 0);
-        await ns.sleep(tWithDelays[1]);
+  let freeRam = ns.getServerMaxRam(base) - ns.getServerUsedRam(base);
+  if (costOfCycle < freeRam) {
+    ns.print(`[${Colors.cyan}Batch${Colors.reset}] optimizing...`);
+    ns.exec('/async/aweaken.js', base, weakenThreads, target, w1Sleep, 0);
+    ns.exec('/async/agrow.js', base, growThreads, target, gSleep, 0);
+    ns.exec('/async/aweaken.js', base, weakenThreads, target, w2Sleep, 0);
+    await ns.sleep(maxTime);
+    executed = true;
+  }
+
+  // gradual optimizing
+  if (!executed) {
+    let isDiffMin = false;
+    let isMoneyMax = false;
+    ns.print(`[${Colors.cyan}Cyclic${Colors.reset}] optimizing...`);
+    while (!(isDiffMin && isMoneyMax)) {
+      if (ns.getServerSecurityLevel(target) > serv.minDifficulty) {
+        isDiffMin = false;
+        const threads = calculateWeakenThreads(ns, base);
+        const time = ns.getWeakenTime(target);
+        ns.exec('/async/aweaken.js', base, threads, target, 0, 0);
+        await ns.sleep(time);
+      } else {
+        isDiffMin = true;
+      }
+      if (ns.getServerMoneyAvailable(target) < ns.getServerMaxMoney(target)) {
+        isMoneyMax = false;
+        const threads = calculateGrowThreads(ns, base, target);
+        const time = ns.getGrowTime(target);
+        ns.exec('/async/agrow.js', base, threads, target, 0, 0);
+        await ns.sleep(time);
+      } else {
+        isMoneyMax = true;
       }
     }
     await ns.sleep(300);
   }
-  await ns.sleep(maxTime);
+}
+
+/** @param {NS} ns */
+function calculateWeakenThreads(ns, host) {
+  const wMem = ns.getScriptRam('/async/aweaken.js');
+  const servMem = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
+  let threads = Math.floor(servMem / wMem);
+  if (threads < 1) threads = 1;
+  return threads;
+}
+
+/** @param {NS} ns */
+function calculateGrowThreads(ns, host, target) {
+  const gMem = ns.getScriptRam('/async/agrow.js');
+  const servMem = ns.getServerMaxRam(host) - ns.getServerUsedRam(host);
+  let threads = ns.formulas.hacking.growThreads(ns.getServer(target), ns.getPlayer(), ns.getServerMaxMoney(target), 1);
+  threads = Math.min(Math.floor(servMem / gMem), threads);
+  if (threads < 1) threads = 1;
+  return threads;
 }

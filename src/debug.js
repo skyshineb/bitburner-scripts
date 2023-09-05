@@ -113,35 +113,27 @@ export async function main(ns) {
     const freeMem = ns.getServerMaxRam(base) - ns.getServerUsedRam(base);
     if (freeMem > ramNeeded) {
       ns.clearLog();
-      ns.printf(
-        `${Colors.magneta}Hacking ${Colors.red}%s${Colors.reset} Cycle ${Colors.green}%d${Colors.reset} at %s`,
-        target,
-        cycles,
-        new Date().toLocaleTimeString('it-IT'),
-      );
-      const inc = ns.getScriptIncome('early.js', base, ...ns.args);
-      ns.printf(
-        `Block length: %dsec Ram cost: %dG. Avg Income: %s`,
-        maxTime / 1000,
-        costOfCycle - 100,
-        ns.formatNumber(inc, 2),
-      );
-      handle.write(
-        `${target} ${cycles} ${Date.now()} ${ns.formatNumber(maxTime / 1000, 0)} ${costOfCycle - 100} ${inc}`,
-      );
+      ns.printf(`\t\t\t[${target}]`);
+      ns.printf(``)
+//      ns.printf(
+//        `${Colors.magneta}Hacking ${Colors.red}%s${Colors.reset} Cycle ${Colors.green}%d${Colors.reset} at %s`,
+//        target,
+//        cycles,
+//        new Date().toLocaleTimeString('it-IT'),
+//      );
+     
+//      handle.write(
+//        `${target} ${cycles} ${Date.now()} ${ns.formatNumber(maxTime / 1000, 0)} ${costOfCycle - 100} ${inc}`,
+//      );
       
-      //ns.printf("cycle startTime: %s",Date.now());
       ns.exec('/async/ahack.js', base, recommendedThreads, target, recommendedThreads, hSleep, cycles);
       ns.exec('/async/aweaken.js', base, weakenThreads, target, w1Sleep, cycles);
       ns.exec('/async/agrow.js', base, growThreads, target, gSleep, cycles);
       ns.exec('/async/aweaken.js', base, weakenThreads, target, w2Sleep, cycles);
       
       cycles++;
-      //if(cycles == 60) break;
-    } else {
-      await ns.sleep(Math.max(1000, delayMS * 4));
     }
-    await ns.sleep(delayMS * 5);
+    await ns.sleep(delayMS * 4);
   }
 }
 

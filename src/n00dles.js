@@ -15,9 +15,9 @@ export async function main(ns) {
   }
 
   const servName = 'pserv-1';
-  ns.print('Server upgrade cost: ' + ns.formatNumber(ns.getPurchasedServerUpgradeCost(servName, 1024), 2));
-  //ns.purchaseServer(servName, 512);
-  ns.upgradePurchasedServer(servName, 1024);
+  //ns.print('Server upgrade cost: ' + ns.formatNumber(ns.getPurchasedServerUpgradeCost(servName, 16384 * 2), 2));
+  ns.purchaseServer(servName, 524288);
+  //ns.upgradePurchasedServer(servName, 524288);
   ns.scp(
     [
       'early.js',
