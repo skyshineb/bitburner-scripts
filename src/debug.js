@@ -20,7 +20,7 @@ export async function main(ns) {
   }
 
   ns.disableLog('ALL');
-  const handle = ns.getPortHandle(Ports.hack_hwgw);
+  const handle = ns.getPortHandle(Ports.hack_debug);
   const securityThresh = ns.getServerMinSecurityLevel(target);
 
   const moneyPercentageToSteal = stealP == undefined ? 0.75 : stealP;
@@ -38,24 +38,24 @@ export async function main(ns) {
 
   const formulas = ns.formulas.hacking;
   
+  /** @returns {HWGWTimings} */
   function getTimingsAndThreads() {
     const player = ns.getPlayer();
     const targetServ = ns.getServer(target);
 
     // hack
-    const hackThreads = Math.floor(
-      ns.hackAnalyzeThreads(target, targetServ.moneyMax * moneyPercentageToSteal),
-      );
-
     targetServ.hackDifficulty = targetServ.minDifficulty;
+    targetServ.moneyAvailable = targetServ.moneyMax;
     const percentStolenBySingleThread = formulas.hackPercent(targetServ, player);
+    const hackThreads = Math.floor(moneyPercentageToSteal / percentStolenBySingleThread);
+
     const moneyAfterHack = targetServ.moneyMax - (percentStolenBySingleThread * hackThreads * targetServ.moneyMax);
     const hSecIncrease = ns.hackAnalyzeSecurity(hackThreads, target);
-    const hTime = ns.getHackTime(target);
+    const hTime = formulas.hackTime(targetServ, player);
 
     // weaken 1
     const weakenEffect = ns.weakenAnalyze(1, cores);
-    const weakenThreads1 = Math.round(hSecIncrease / weakenEffect);
+    const weakenThreads1 = Math.max(1, Math.round(hSecIncrease / weakenEffect));
     targetServ.hackDifficulty = targetServ.minDifficulty + hSecIncrease;
     const wTime1 = formulas.weakenTime(targetServ, player);
 
@@ -63,11 +63,11 @@ export async function main(ns) {
     targetServ.moneyAvailable = moneyAfterHack;
     const growThreads = Math.round(formulas.growThreads(targetServ, player, targetServ.moneyMax, cores));
     targetServ.hackDifficulty = targetServ.minDifficulty;
-    const gTime = ns.formulas.hacking.growTime(targetServ, player);
+    const gTime = formulas.growTime(targetServ, player);
     const gSecIncrease = ns.growthAnalyzeSecurity(growThreads);
     
     // weaken 2
-    const weakenThreads2 = Math.round(gSecIncrease / weakenEffect);
+    const weakenThreads2 = Math.max(1, Math.round(gSecIncrease / weakenEffect));
     targetServ.hackDifficulty = targetServ.minDifficulty + gSecIncrease;
     const wTime2 = formulas.weakenTime(targetServ, player);
     
@@ -75,10 +75,11 @@ export async function main(ns) {
   }
 
   const delayMS = 300;
-  function getDelays(hTime, wTime1, gTime, wTime2) {
+  /** @param {HWGWTimings} timings*/
+  function setDelays(timings) {
     const delays = [1 * delayMS, 2 * delayMS, 3 * delayMS, 4 * delayMS];
     // backwards order of delays
-    const tWithDelays = [delays[0] + wTime2, delays[1] + gTime, delays[2] + wTime1, delays[3] + hTime];
+    const tWithDelays = [delays[0] + timings.wTime2, delays[1] + timings.gTime, delays[2] + timings.wTime1, delays[3] + timings.hTime];
     const maxTime = Math.max(...tWithDelays);
     const sleepTime = [
       maxTime - tWithDelays[0],
@@ -92,29 +93,33 @@ export async function main(ns) {
     const gSleep = sleepTime[1];
     const wSleep2 = sleepTime[0];
     
-    return [hSleep, wSleep1, gSleep, wSleep2];
+    timings.setDelays(hSleep, wSleep1, gSleep, wSleep2, maxTime);
   }
 
   function getRamForCycle(hThreads, wThreads1, gThreads, wThreads2) {
-    const hMem = ns.getScriptRam('/async/ahack.js') * hThreads;
-    const wMem1 = ns.getScriptRam('/async/aweaken.js') * wThreads1;
-    const gMem = ns.getScriptRam('/async/agrow.js') * gThreads;
-    const wMem2 = ns.getScriptRam('/async/aweaken.js') * wThreads2;
+    const hMem = ns.getScriptRam('/async/ahack_d.js') * hThreads;
+    const wMem1 = ns.getScriptRam('/async/aweaken_d.js') * wThreads1;
+    const gMem = ns.getScriptRam('/async/agrow_d.js') * gThreads;
+    const wMem2 = ns.getScriptRam('/async/aweaken_d.js') * wThreads2;
     return hMem + wMem1 + gMem + wMem2;
   }
 
+  const reports = new Map();
+
   let cycles = 0;
+  let prevBlockMaxTime = 0;
   // hack -> weaken -> grow -> weaken
   while (true) {
     // collect info for new cycle
     const tnt = getTimingsAndThreads();
-    const delays = getDelays(tnt.hTime, tnt.wTime1, tnt.gTime, tnt.wTime2);
+    setDelays(tnt);
     const ramNeeded = getRamForCycle(tnt.hackThreads, tnt.weakenThreads1, tnt.growThreads, tnt.weakenThreads2);
     const freeMem = ns.getServerMaxRam(base) - ns.getServerUsedRam(base);
     if (freeMem > ramNeeded) {
       ns.clearLog();
       ns.printf(`\t\t\t[${target}]`);
-      ns.printf(``)
+      ns.printf(`HT: ${tnt.hTime} WT1: ${tnt.wTime1} GT: ${tnt.gTime} WT2: ${tnt.wTime2}`);
+      ns.printf(`SHT: ${tnt.hSleep} SWT1: ${tnt.wSleep1} SGT: ${tnt.gSleep} SWT2: ${tnt.wSleep2}`);
 //      ns.printf(
 //        `${Colors.magneta}Hacking ${Colors.red}%s${Colors.reset} Cycle ${Colors.green}%d${Colors.reset} at %s`,
 //        target,
@@ -126,14 +131,26 @@ export async function main(ns) {
 //        `${target} ${cycles} ${Date.now()} ${ns.formatNumber(maxTime / 1000, 0)} ${costOfCycle - 100} ${inc}`,
 //      );
       
-      ns.exec('/async/ahack.js', base, recommendedThreads, target, recommendedThreads, hSleep, cycles);
-      ns.exec('/async/aweaken.js', base, weakenThreads, target, w1Sleep, cycles);
-      ns.exec('/async/agrow.js', base, growThreads, target, gSleep, cycles);
-      ns.exec('/async/aweaken.js', base, weakenThreads, target, w2Sleep, cycles);
+      ns.exec('/async/ahack_d.js', base, {threads: tnt.hackThreads - 1}, target, tnt.hackThreads - 1, tnt.hTime, tnt.hSleep, cycles);
+      ns.exec('/async/aweaken_d.js', base, {threads: tnt.weakenThreads1}, target, tnt.weakenThreads1, tnt.wTime1, tnt.wSleep1, cycles);
+      ns.exec('/async/agrow_d.js', base, {threads: tnt.growThreads}, target, tnt.growThreads, tnt.gTime, tnt.gSleep, cycles);
+      ns.exec('/async/aweaken_d.js', base, {threads: tnt.weakenThreads2}, target, tnt.weakenThreads2, tnt.wTime2, tnt.wSleep2, cycles);
       
       cycles++;
+      if (prevBlockMaxTime > tnt.maxTime) {
+        await ns.sleep(prevBlockMaxTime - tnt.maxTime + delayMS);
+      }
+      prevBlockMaxTime = tnt.maxTime;
     }
     await ns.sleep(delayMS * 4);
+
+    // do monitoring
+    while (!handle.empty()) {
+      const vals = handle.read().split(' ');
+      const type = vals[0];
+      const cycle = vals[1];
+      const duration = vals[2];
+    }
   }
 }
 

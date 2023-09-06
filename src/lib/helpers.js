@@ -9,4 +9,12 @@ export class HWGWTimings {
     this.gTime = gTime;
     this.wTime2 = wTime2;
   }
+
+  setDelays(hSleep, wSleep1, gSleep, wSleep2, maxTime) {
+    this.hSleep = hSleep;
+    this.wSleep1 = wSleep1;
+    this.gSleep = gSleep;
+    this.wSleep2 = wSleep2;
+    this.maxTime = maxTime;
+  }
 }
