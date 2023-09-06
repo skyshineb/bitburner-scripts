@@ -104,6 +104,7 @@ export async function main(ns) {
     return hMem + wMem1 + gMem + wMem2;
   }
 
+  /** @type {Map<number, Event>} */
   const reports = new Map();
 
   let cycles = 0;
@@ -115,11 +116,11 @@ export async function main(ns) {
     setDelays(tnt);
     const ramNeeded = getRamForCycle(tnt.hackThreads, tnt.weakenThreads1, tnt.growThreads, tnt.weakenThreads2);
     const freeMem = ns.getServerMaxRam(base) - ns.getServerUsedRam(base);
+    ns.clearLog();
+    ns.printf(`\t\t\t[${target}]`);
+    ns.printf(`HT: ${tnt.hTime} WT1: ${tnt.wTime1} GT: ${tnt.gTime} WT2: ${tnt.wTime2}`);
+    ns.printf(`SHT: ${tnt.hSleep} SWT1: ${tnt.wSleep1} SGT: ${tnt.gSleep} SWT2: ${tnt.wSleep2}`);
     if (freeMem > ramNeeded) {
-      ns.clearLog();
-      ns.printf(`\t\t\t[${target}]`);
-      ns.printf(`HT: ${tnt.hTime} WT1: ${tnt.wTime1} GT: ${tnt.gTime} WT2: ${tnt.wTime2}`);
-      ns.printf(`SHT: ${tnt.hSleep} SWT1: ${tnt.wSleep1} SGT: ${tnt.gSleep} SWT2: ${tnt.wSleep2}`);
 //      ns.printf(
 //        `${Colors.magneta}Hacking ${Colors.red}%s${Colors.reset} Cycle ${Colors.green}%d${Colors.reset} at %s`,
 //        target,
@@ -132,9 +133,9 @@ export async function main(ns) {
 //      );
       
       ns.exec('/async/ahack_d.js', base, {threads: tnt.hackThreads - 1}, target, tnt.hackThreads - 1, tnt.hTime, tnt.hSleep, cycles);
-      ns.exec('/async/aweaken_d.js', base, {threads: tnt.weakenThreads1}, target, tnt.weakenThreads1, tnt.wTime1, tnt.wSleep1, cycles);
+      ns.exec('/async/aweaken_d.js', base, {threads: tnt.weakenThreads1}, target, tnt.weakenThreads1, tnt.wTime1, tnt.wSleep1, 'w1' ,cycles);
       ns.exec('/async/agrow_d.js', base, {threads: tnt.growThreads}, target, tnt.growThreads, tnt.gTime, tnt.gSleep, cycles);
-      ns.exec('/async/aweaken_d.js', base, {threads: tnt.weakenThreads2}, target, tnt.weakenThreads2, tnt.wTime2, tnt.wSleep2, cycles);
+      ns.exec('/async/aweaken_d.js', base, {threads: tnt.weakenThreads2}, target, tnt.weakenThreads2, tnt.wTime2, tnt.wSleep2, 'w2' ,cycles);
       
       cycles++;
       if (prevBlockMaxTime > tnt.maxTime) {
@@ -142,7 +143,6 @@ export async function main(ns) {
       }
       prevBlockMaxTime = tnt.maxTime;
     }
-    await ns.sleep(delayMS * 4);
 
     // do monitoring
     while (!handle.empty()) {
@@ -150,7 +150,57 @@ export async function main(ns) {
       const type = vals[0];
       const cycle = vals[1];
       const duration = vals[2];
+      let event;
+      if (reports.has(cycle)) {
+        event = reports.get(cycle);
+      } else {
+        event = new Event();
+        reports.set(cycle, event);
+      }
+      if (type === 'hack') {
+        event.setHDuration(duration);
+      } else if (type === 'w1') {
+        event.setW1Duration(duration);
+      } else if (type === 'grow') {
+        event.setGDuration(duration);
+      } else {
+        event.setW2Duration(duration);
+      }
     }
+    ns.printf('-----------------');
+    const strs = new Array(...reports.entries()).filter(e => e[1].isFilled()).sort((a, b) => a[0] - b[0]);
+    for (const s of strs) {
+      ns.printf(`[${s[0]}] H: ${s[1].hDuration} W1: ${s[1].w1Duration} G: ${s[1].gDuration} W2: ${s[1].w2Duration}`);
+    }
+
+    await ns.sleep(delayMS * 4);
+  }
+}
+
+class Event {
+  hDuration = undefined;
+  w1Duration = undefined;
+  gDuration = undefined;
+  w2Duration = undefined;
+
+  setHDuration(time) {
+    this.hDuration = time;
+  }
+  setW1Duration(time) {
+    this.w1Duration = time;
+  }
+  setGDuration(time) {
+    this.gDuration = time;
+  }
+  setW2Duration(time) {
+    this.w2Duration = time;
+  }
+
+  isFilled(){
+    return this.hDuration !== undefined && this.w1Duration !== undefined && this.gDuration !== undefined && this.w2Duration !== undefined;
+  }
+  toString() {
+    return `H: ${this.hDuration} W1: ${this.w1Duration} G: ${this.gDuration} W2: ${this.w2Duration}`;
   }
 }
 
